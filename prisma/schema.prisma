@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Rôle fonctionnel de l'utilisateur dans l'application.
+enum UserRole {
+  freemium
+  premium
+  enterprise
+  admin
+}
+
+/// État global du compte utilisateur.
+enum UserStatus {
+  pending
+  active
+  inactive
+  deleted
+  suspended
+}
+
+/// État de validation d'identité (KYC léger).
+enum IdentityVerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+/// Type d'événement entrepreneurial.
+enum EventType {
+  afterwork
+  conference
+  networking
+  workshop
+  concert
+  exhibition
+  outing
+  other
+}
+
+/// État de cycle de vie d'un événement publié.
+enum EventStatus {
+  draft
+  published
+  cancelled
+  completed
+  archived
+}
+
+/// Représente un utilisateur de la plateforme.
+model User {
+  id                                 String                      @id @default(uuid())
+  firstName                          String?
+  lastName                           String?
+  dateOfBirth                        DateTime?                   @db.Date
+  email                              String?                     @unique
+  phoneE164                          String                      @unique
+  phoneVerified                      Boolean                     @default(false)
+  emailVerified                      Boolean                     @default(false)
+  profilePicture                     String?
+  identityVerified                   Boolean                     @default(false)
+  identityVerificationDocumentFront  String?
+  identityVerificationDocumentBack   String?
+  identityVerificationDocumentSelfie String?
+  identityVerificationStatus         IdentityVerificationStatus? @default(pending)
+  role                               UserRole                    @default(freemium)
+  status                             UserStatus                  @default(pending)
+
+  isBlocked     Boolean   @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+
+  approvedAt DateTime?
+  rejectedAt DateTime?
+
+  onboardingStep Int @default(0)
+
+  lastLoginAt         DateTime?
+  lastLogoutAt        DateTime?
+  lastActivityAt      DateTime?
+  lastLoginIp         String?
+  lastLoginUserAgent  String?
+  lastLoginLocation   String?
+  lastLoginDevice     String?
+  lastLoginDeviceType String?
+  lastLoginDeviceOs   String?
+
+  jobTitle              String?
+  company               String?
+  quartier              String?
+  city                  String?
+  bio                   String?
+  directoryVisible      Boolean @default(false)
+  showEmailInDirectory  Boolean @default(false)
+  showPhoneInDirectory  Boolean @default(false)
+
+  publishedEvents Event[] @relation("EventOrganizer")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user")
+}
+
+/// Représente un événement entrepreneurial publié par un administrateur.
+model Event {
+  id          String      @id @default(uuid())
+  organizerId String
+  organizer   User        @relation("EventOrganizer", fields: [organizerId], references: [id])
+  title       String
+  type        EventType
+  imageUrl    String?
+  description String?
+  startsAt    DateTime
+  address     String
+  links       Json        @default("[]")
+  status      EventStatus @default(published)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status, startsAt])
+  @@index([type, startsAt])
+  @@map("event")
+}
