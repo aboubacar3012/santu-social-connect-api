@@ -95,6 +95,35 @@ Swagger disponible après démarrage :
 
 - [http://localhost:3000/api](http://localhost:3000/api)
 
+## Déploiement Vercel
+
+Le build Vercel échoue si le client Prisma n'est pas généré (`src/generated/prisma` est ignoré par Git).
+Les scripts `postinstall`, `build` et `vercel-build` exécutent `prisma generate` automatiquement.
+
+### Variables d'environnement (dashboard Vercel)
+
+Configurer au minimum :
+
+- `DATABASE_URL` — préférer une URL avec **connection pooling** (Neon, Supabase pooler, Prisma Postgres, PgBouncer `?pgbouncer=true`)
+- `JWT_SECRET`
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`
+- `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_PUBLIC_BASE_URL`
+
+### Migrations en production
+
+Appliquer les migrations une fois (CLI locale ou CI), pas à chaque build :
+
+```bash
+DATABASE_URL="..." npx prisma migrate deploy
+```
+
+### Alternatives recommandées
+
+Vercel fonctionne pour NestJS (serverless), mais pour une API NestJS + Prisma + PostgreSQL avec connexions longues, ces hébergeurs sont souvent plus simples :
+
+- **Railway** / **Render** / **Fly.io** — process Node continu, moins de cold starts
+- **Neon** + **Railway** — Postgres serverless + API classique
+
 ## Endpoints principaux (v0)
 
 - `POST /auth/phone/request-otp`
