@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { EventType } from '@/generated/prisma/client';
+import { EventType } from '../../generated/prisma/client';
 
 export class EventLinkDto {
   @ApiProperty({ example: 'Billetterie' })

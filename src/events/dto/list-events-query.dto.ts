@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
-import { EventType } from '@/generated/prisma/client';
+import { EventType } from '../../generated/prisma/client';
 
 export class ListEventsQueryDto {
   @ApiPropertyOptional({ enum: EventType, example: EventType.afterwork })

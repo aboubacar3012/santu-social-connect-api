@@ -9,8 +9,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import type { User } from '@/generated/prisma/client';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import type { User } from '../generated/prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 import { PresignUploadDto } from './dto/presign-upload.dto';
 import { UploadsService } from './uploads.service';

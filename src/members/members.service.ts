@@ -3,9 +3,9 @@ import {
   IdentityVerificationStatus,
   Prisma,
   UserStatus,
-} from '@/generated/prisma/client';
+} from '../generated/prisma/client';
 
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ListMembersQueryDto } from './dto/list-members-query.dto';
 
 @Injectable()

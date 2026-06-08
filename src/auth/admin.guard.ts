@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-import { UserRole, type User } from '@/generated/prisma/client';
+import { UserRole, type User } from '../generated/prisma/client';
 
 type AuthenticatedRequest = Request & {
   user?: User | { id: string; phoneE164?: string | null };

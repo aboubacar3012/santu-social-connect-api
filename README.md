@@ -100,6 +100,15 @@ Swagger disponible après démarrage :
 Le build Vercel échoue si le client Prisma n'est pas généré (`src/generated/prisma` est ignoré par Git).
 Les scripts `postinstall`, `build` et `vercel-build` exécutent `prisma generate` automatiquement.
 
+### Configuration Vercel (zero-config)
+
+Suivre la [doc officielle NestJS sur Vercel](https://vercel.com/docs/frameworks/backend/nestjs) :
+
+- Point d'entrée : `src/main.ts` avec `await app.listen(process.env.PORT ?? 3000)`
+- Imports **relatifs** (`./app.module`) — les alias TypeScript `@/` ne sont pas résolus au runtime Vercel
+- Pas de `vercel.json` requis ; le framework NestJS est détecté automatiquement
+- `vercel-build` dans `package.json` pour générer Prisma Client avant le build
+
 ### Variables d'environnement (dashboard Vercel)
 
 Configurer au minimum :

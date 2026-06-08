@@ -19,9 +19,9 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import { AdminGuard } from '@/auth/admin.guard';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
-import type { User } from '@/generated/prisma/client';
+import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { User } from '../generated/prisma/client';
 import { CreateEventDto } from './dto/create-event.dto';
 import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { EventsService } from './events.service';

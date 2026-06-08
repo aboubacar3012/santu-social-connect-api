@@ -10,8 +10,8 @@ import {
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import type { User } from '@/generated/prisma/client';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import type { User } from '../generated/prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';

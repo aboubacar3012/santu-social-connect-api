@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { User } from '@/generated/prisma/client';
-import { Prisma } from '@/generated/prisma/client';
-import { PrismaService } from '@/prisma/prisma.service';
+import type { User } from '../generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 function emptyToNull(s: string | null | undefined): string | null | undefined {
