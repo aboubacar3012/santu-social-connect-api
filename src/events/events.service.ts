@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventStatus, Prisma } from '../generated/prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { ListEventsQueryDto } from './dto/list-events-query.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 type EventLink = { label: string; url: string };
 
@@ -55,6 +60,64 @@ export class EventsService {
     });
 
     return { events: events.map((event) => this.toEventResponse(event)) };
+  }
+
+  async listMyEvents(organizerId: string) {
+    const events = await this.prisma.event.findMany({
+      where: { organizerId },
+      orderBy: { startsAt: 'desc' },
+      include: { organizer: true },
+    });
+
+    return { events: events.map((event) => this.toEventResponse(event)) };
+  }
+
+  async updateEvent(eventId: string, organizerId: string, dto: UpdateEventDto) {
+    const existing = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Événement introuvable');
+    }
+
+    if (existing.organizerId !== organizerId) {
+      throw new ForbiddenException(
+        'Vous ne pouvez modifier que vos propres événements',
+      );
+    }
+
+    const data: Prisma.EventUpdateInput = {};
+
+    if (dto.title !== undefined) {
+      data.title = dto.title.trim();
+    }
+    if (dto.type !== undefined) {
+      data.type = dto.type;
+    }
+    if (dto.imageUrl !== undefined) {
+      data.imageUrl = this.emptyToNull(dto.imageUrl);
+    }
+    if (dto.description !== undefined) {
+      data.description = this.emptyToNull(dto.description);
+    }
+    if (dto.startsAt !== undefined) {
+      data.startsAt = new Date(dto.startsAt);
+    }
+    if (dto.address !== undefined) {
+      data.address = dto.address.trim();
+    }
+    if (dto.links !== undefined) {
+      data.links = dto.links as unknown as Prisma.InputJsonValue;
+    }
+
+    const event = await this.prisma.event.update({
+      where: { id: eventId },
+      data,
+      include: { organizer: true },
+    });
+
+    return { event: this.toEventResponse(event) };
   }
 
   async getEventById(eventId: string) {
