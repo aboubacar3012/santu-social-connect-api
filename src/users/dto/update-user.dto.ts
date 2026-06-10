@@ -3,9 +3,12 @@ import {
   IsBoolean,
   IsDateString,
   IsEmail,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateIf,
 } from 'class-validator';
 
@@ -119,4 +122,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   showPhoneInDirectory?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Étape d’onboarding (0 = profil à compléter, 1 = terminé).',
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  onboardingStep?: number;
 }

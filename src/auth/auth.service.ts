@@ -57,6 +57,9 @@ export class AuthService {
           lastName: null,
           profilePicture: null,
           status: UserStatus.active,
+          directoryVisible: true,
+          showEmailInDirectory: true,
+          showPhoneInDirectory: true,
         },
       });
     }
@@ -73,6 +76,13 @@ export class AuthService {
         phoneE164: user.phoneE164,
         email: user.email,
         role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        jobTitle: user.jobTitle,
+        company: user.company,
+        city: user.city,
+        profilePicture: user.profilePicture,
+        onboardingStep: user.onboardingStep,
       },
     };
   }

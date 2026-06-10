@@ -109,6 +109,9 @@ export class UsersService {
     if (dto.showPhoneInDirectory !== undefined) {
       data.showPhoneInDirectory = dto.showPhoneInDirectory;
     }
+    if (dto.onboardingStep !== undefined) {
+      data.onboardingStep = dto.onboardingStep;
+    }
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
