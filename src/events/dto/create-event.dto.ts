@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -12,7 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { EventType } from '../../generated/prisma/client';
+import { EventStatus, EventType } from '../../generated/prisma/client';
 
 export class EventLinkDto {
   @ApiProperty({ example: 'Billetterie' })
@@ -59,6 +60,31 @@ export class CreateEventDto {
   })
   @IsDateString()
   startsAt!: string;
+
+  @ApiPropertyOptional({
+    description: 'Date et heure de fin (ISO 8601). Obligatoire pour les événements multi-jours ou avec plage horaire.',
+    example: '2026-06-14T23:59:59.999Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  endsAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Événement sur la journée entière (sans heure précise).',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAllDay?: boolean;
+
+  @ApiPropertyOptional({
+    enum: EventStatus,
+    description: 'État de publication. Par défaut : published.',
+    example: EventStatus.published,
+  })
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 
   @ApiProperty({ example: '12 Quai du Port, 13002 Marseille' })
   @IsString()

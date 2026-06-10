@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,8 @@ export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createEvent(organizerId: string, dto: CreateEventDto) {
+    const schedule = this.parseSchedule(dto);
+
     const event = await this.prisma.event.create({
       data: {
         organizerId,
@@ -24,10 +27,12 @@ export class EventsService {
         type: dto.type,
         imageUrl: this.emptyToNull(dto.imageUrl),
         description: this.emptyToNull(dto.description),
-        startsAt: new Date(dto.startsAt),
+        startsAt: schedule.startsAt,
+        endsAt: schedule.endsAt,
+        isAllDay: schedule.isAllDay,
         address: dto.address.trim(),
         links: (dto.links ?? []) as unknown as Prisma.InputJsonValue,
-        status: EventStatus.published,
+        status: dto.status ?? EventStatus.published,
       },
       include: { organizer: true },
     });
@@ -101,8 +106,25 @@ export class EventsService {
     if (dto.description !== undefined) {
       data.description = this.emptyToNull(dto.description);
     }
-    if (dto.startsAt !== undefined) {
-      data.startsAt = new Date(dto.startsAt);
+    if (
+      dto.startsAt !== undefined ||
+      dto.endsAt !== undefined ||
+      dto.isAllDay !== undefined
+    ) {
+      const schedule = this.parseSchedule({
+        startsAt: dto.startsAt ?? existing.startsAt.toISOString(),
+        endsAt:
+          dto.endsAt !== undefined
+            ? dto.endsAt
+            : existing.endsAt?.toISOString(),
+        isAllDay: dto.isAllDay !== undefined ? dto.isAllDay : existing.isAllDay,
+      });
+      data.startsAt = schedule.startsAt;
+      data.endsAt = schedule.endsAt;
+      data.isAllDay = schedule.isAllDay;
+    }
+    if (dto.status !== undefined) {
+      data.status = dto.status;
     }
     if (dto.address !== undefined) {
       data.address = dto.address.trim();
@@ -118,6 +140,26 @@ export class EventsService {
     });
 
     return { event: this.toEventResponse(event) };
+  }
+
+  async deleteEvent(eventId: string, organizerId: string) {
+    const existing = await this.prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Événement introuvable');
+    }
+
+    if (existing.organizerId !== organizerId) {
+      throw new ForbiddenException(
+        'Vous ne pouvez supprimer que vos propres événements',
+      );
+    }
+
+    await this.prisma.event.delete({ where: { id: eventId } });
+
+    return { success: true };
   }
 
   async getEventById(eventId: string) {
@@ -140,6 +182,8 @@ export class EventsService {
     imageUrl: string | null;
     description: string | null;
     startsAt: Date;
+    endsAt: Date | null;
+    isAllDay: boolean;
     address: string;
     links: unknown;
     status: string;
@@ -149,7 +193,9 @@ export class EventsService {
     organizer?: unknown;
   }) {
     const startsAtDate = event.startsAt;
+    const endsAtDate = event.endsAt;
     const links = this.parseLinks(event.links);
+    const isAllDay = event.isAllDay;
 
     return {
       id: event.id,
@@ -157,19 +203,52 @@ export class EventsService {
       type: event.type,
       image: event.imageUrl ?? '',
       description: event.description ?? '',
-      date: {
-        day: startsAtDate.getDate(),
-        month: startsAtDate.getMonth() + 1,
-        year: startsAtDate.getFullYear(),
-      },
-      time: this.formatTime(startsAtDate),
+      date: this.toDateParts(startsAtDate),
+      time: isAllDay ? '' : this.formatTime(startsAtDate),
+      endDate: endsAtDate ? this.toDateParts(endsAtDate) : null,
+      endTime: endsAtDate && !isAllDay ? this.formatTime(endsAtDate) : null,
+      isAllDay,
       address: event.address,
       links,
       startsAt: startsAtDate.getTime(),
+      endsAt: endsAtDate?.getTime() ?? null,
       status: event.status,
       organizerId: event.organizerId,
       createdAt: event.createdAt.toISOString(),
       updatedAt: event.updatedAt.toISOString(),
+    };
+  }
+
+  private parseSchedule(dto: {
+    startsAt: string;
+    endsAt?: string;
+    isAllDay?: boolean;
+  }) {
+    const startsAt = new Date(dto.startsAt);
+    if (Number.isNaN(startsAt.getTime())) {
+      throw new BadRequestException('Date de début invalide');
+    }
+
+    const isAllDay = dto.isAllDay === true;
+    const endsAt = dto.endsAt ? new Date(dto.endsAt) : null;
+
+    if (endsAt && Number.isNaN(endsAt.getTime())) {
+      throw new BadRequestException('Date de fin invalide');
+    }
+    if (endsAt && endsAt.getTime() < startsAt.getTime()) {
+      throw new BadRequestException(
+        'La date de fin doit être postérieure au début',
+      );
+    }
+
+    return { startsAt, endsAt, isAllDay };
+  }
+
+  private toDateParts(date: Date) {
+    return {
+      day: date.getDate(),
+      month: date.getMonth() + 1,
+      year: date.getFullYear(),
     };
   }
 

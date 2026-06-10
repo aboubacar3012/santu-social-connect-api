@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -84,6 +85,19 @@ export class EventsController {
   ) {
     const userId = this.getUserId(req);
     return this.eventsService.updateEvent(id, userId, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Supprimer un événement (admin, organisateur)' })
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  async delete(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    const userId = this.getUserId(req);
+    return this.eventsService.deleteEvent(id, userId);
   }
 
   @Get(':id')

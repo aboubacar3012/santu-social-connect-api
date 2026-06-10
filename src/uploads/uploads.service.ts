@@ -37,10 +37,22 @@ function defaultExtensionForMime(contentType: string): string {
   return map[contentType] ?? '.bin';
 }
 
+/** Ajoute `https://` si la base publique est un hôte sans schéma (ex. CloudFront). */
+function normalizePublicBaseUrl(publicBase: string): string {
+  const trimmed = publicBase.trim().replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+  return `https://${trimmed}`;
+}
+
 /** Construit l’URL publique à partir de `AWS_S3_PUBLIC_BASE_URL` + clé objet. */
 function buildPublicFileUrl(publicBase: string, key: string): string {
   const encoded = key.split('/').map(encodeURIComponent).join('/');
-  const base = publicBase.replace(/\/+$/, '');
+  const base = normalizePublicBaseUrl(publicBase);
   return `${base}/${encoded}`;
 }
 
@@ -73,8 +85,6 @@ export class UploadsService {
     });
   }
 
-  // Cette méthode crée une URL pré-signée pour envoyer un fichier vers S3.
-  // C'est a dire que l'utilisateur peut uploader un fichier vers S3 sans avoir besoin de se connecter à l'API.
   async createPresignedPut(userId: string, dto: PresignUploadDto) {
     if (!this.client || !this.bucket || !this.region) {
       throw new BadRequestException(
@@ -86,6 +96,7 @@ export class UploadsService {
         'AWS_S3_PUBLIC_BASE_URL est requis (URL de base CloudFront / CDN pour les fichiers publics).',
       );
     }
+
     const client = this.client;
     const bucket = this.bucket;
     const publicBase = this.publicBase.trim();

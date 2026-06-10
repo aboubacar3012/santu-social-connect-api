@@ -120,6 +120,8 @@ model Event {
   imageUrl    String?
   description String?
   startsAt    DateTime
+  endsAt      DateTime?
+  isAllDay    Boolean     @default(false)
   address     String
   links       Json        @default("[]")
   status      EventStatus @default(published)
@@ -127,6 +129,7 @@ model Event {
   updatedAt   DateTime    @updatedAt
 
   @@index([status, startsAt])
+  @@index([status, endsAt])
   @@index([type, startsAt])
   @@map("event")
 }
