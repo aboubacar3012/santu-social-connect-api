@@ -47,7 +47,7 @@ export class MembersService {
       where: {
         id: memberId,
         directoryVisible: true,
-        // status: UserStatus.active,
+        status: UserStatus.active,
         isBlocked: false,
       },
     });

@@ -4,6 +4,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import twilio = require('twilio');
 import { UserStatus } from '../generated/prisma/enums';
 
+const DEV_BYPASS_PHONE = '+33742424242';
+const DEV_BYPASS_TARGET_PHONE = '+33758020980';
+
 @Injectable()
 export class AuthService {
   private readonly twilioClient: ReturnType<typeof twilio>;
@@ -27,7 +30,15 @@ export class AuthService {
     this.verifyServiceSid = verifyServiceSid;
   }
 
+  private isDevBypass(phoneE164: string): boolean {
+    return phoneE164 === DEV_BYPASS_PHONE;
+  }
+
   async requestOtp(phoneE164: string) {
+    if (this.isDevBypass(phoneE164)) {
+      return this.loginByPhone(DEV_BYPASS_TARGET_PHONE);
+    }
+
     await this.twilioClient.verify.v2
       .services(this.verifyServiceSid)
       .verifications.create({ to: phoneE164, channel: 'sms' });
@@ -36,6 +47,10 @@ export class AuthService {
   }
 
   async verifyOtp(phoneE164: string, code: string) {
+    if (this.isDevBypass(phoneE164)) {
+      return this.loginByPhone(DEV_BYPASS_TARGET_PHONE);
+    }
+
     const check = await this.twilioClient.verify.v2
       .services(this.verifyServiceSid)
       .verificationChecks.create({ to: phoneE164, code });
@@ -44,9 +59,25 @@ export class AuthService {
       throw new BadRequestException('Code OTP invalide');
     }
 
+    return this.loginByPhone(phoneE164);
+  }
+
+  private async loginByPhone(phoneE164: string) {
     let user = await this.prisma.user.findUnique({ where: { phoneE164 } });
 
-    if (!user) {
+    if (user?.status === UserStatus.deleted) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          status: UserStatus.active,
+          phoneVerified: true,
+          directoryVisible: true,
+          showEmailInDirectory: true,
+          showPhoneInDirectory: true,
+          onboardingStep: 0,
+        },
+      });
+    } else if (!user) {
       user = await this.prisma.user.create({
         data: {
           phoneE164,

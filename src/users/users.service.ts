@@ -1,10 +1,11 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import type { User } from '../generated/prisma/client';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma, UserStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -119,6 +120,47 @@ export class UsersService {
     });
 
     return { user: this.sanitizeUser(updated) };
+  }
+
+  async deleteAccount(userId: string) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+    if (existing.status === UserStatus.deleted) {
+      throw new ForbiddenException('Ce compte est déjà supprimé');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: UserStatus.deleted,
+        directoryVisible: false,
+        showEmailInDirectory: false,
+        showPhoneInDirectory: false,
+        firstName: null,
+        lastName: null,
+        email: null,
+        emailVerified: false,
+        dateOfBirth: null,
+        profilePicture: null,
+        identityVerificationDocumentFront: null,
+        identityVerificationDocumentBack: null,
+        identityVerificationDocumentSelfie: null,
+        identityVerified: false,
+        identityVerificationStatus: null,
+        jobTitle: null,
+        company: null,
+        quartier: null,
+        city: null,
+        bio: null,
+        onboardingStep: 0,
+      },
+    });
+
+    return { success: true as const };
   }
 
   private sanitizeUser(user: User) {

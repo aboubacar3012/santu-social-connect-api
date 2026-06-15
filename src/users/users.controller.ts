@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Req,
@@ -49,6 +50,23 @@ export class UserController {
       throw new UnauthorizedException();
     }
     return this.usersService.updateProfile(id, dto);
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Supprimer le compte utilisateur',
+    description:
+      'Suppression logique du compte : données personnelles effacées et profil retiré de l’annuaire.',
+  })
+  async deleteMe(@Req() req: AuthenticatedRequest) {
+    const u = req.user;
+    const id = u && typeof u === 'object' && 'id' in u ? u.id : undefined;
+    if (!id) {
+      throw new UnauthorizedException();
+    }
+    return this.usersService.deleteAccount(id);
   }
 
   @Get('public')

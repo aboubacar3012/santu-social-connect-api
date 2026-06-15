@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UserStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 type JwtPayload = {
@@ -21,6 +22,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const userId = payload.sub;
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    return user ?? { id: userId, phoneE164: payload.phoneE164 };
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    if (user.status === UserStatus.deleted) {
+      throw new UnauthorizedException('Compte supprimé');
+    }
+    return user;
   }
 }
