@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
-import type { PresignUploadDto } from './dto/presign-upload.dto';
+import {
+  ALLOWED_UPLOAD_CONTENT_TYPES,
+  type AllowedUploadContentType,
+  type PresignUploadDto,
+} from './dto/presign-upload.dto';
 
 const PRESIGN_EXPIRES_SEC = 15 * 60;
 
@@ -56,6 +60,26 @@ function buildPublicFileUrl(publicBase: string, key: string): string {
   return `${base}/${encoded}`;
 }
 
+function normalizeContentType(raw: string): AllowedUploadContentType | null {
+  const t = raw.split(';')[0]?.trim().toLowerCase() ?? '';
+  if (t === 'image/jpg') return 'image/jpeg';
+  if ((ALLOWED_UPLOAD_CONTENT_TYPES as readonly string[]).includes(t)) {
+    return t as AllowedUploadContentType;
+  }
+  return null;
+}
+
+function buildObjectKey(
+  userId: string,
+  contentType: AllowedUploadContentType,
+  fileName?: string,
+): string {
+  const name = fileName?.trim() ? safeSegment(fileName) : 'file';
+  const ext =
+    extensionFromFileName(name) || defaultExtensionForMime(contentType);
+  return `uploads/${userId}/${randomUUID()}${ext}`;
+}
+
 @Injectable()
 export class UploadsService {
   private readonly client: S3Client | null;
@@ -101,10 +125,7 @@ export class UploadsService {
     const bucket = this.bucket;
     const publicBase = this.publicBase.trim();
 
-    const name = dto.fileName?.trim() ? safeSegment(dto.fileName) : 'file';
-    const ext =
-      extensionFromFileName(name) || defaultExtensionForMime(dto.contentType);
-    const key = `uploads/${userId}/${randomUUID()}${ext}`;
+    const key = buildObjectKey(userId, dto.contentType, dto.fileName);
 
     const command = new PutObjectCommand({
       Bucket: bucket,
@@ -131,5 +152,57 @@ export class UploadsService {
         `Pré-signature S3 impossible : ${msg}`,
       );
     }
+  }
+
+  async uploadFileBuffer(
+    userId: string,
+    buffer: Buffer,
+    contentType: string,
+    fileName?: string,
+  ) {
+    const normalized = normalizeContentType(contentType);
+    if (!normalized) {
+      throw new BadRequestException(
+        `Type MIME non supporté. Types acceptés : ${ALLOWED_UPLOAD_CONTENT_TYPES.join(
+          ', ',
+        )}`,
+      );
+    }
+
+    if (!this.client || !this.bucket || !this.region) {
+      throw new BadRequestException(
+        'Stockage fichier non configuré (AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).',
+      );
+    }
+    if (!this.publicBase?.trim()) {
+      throw new BadRequestException(
+        'AWS_S3_PUBLIC_BASE_URL est requis (URL de base CloudFront / CDN pour les fichiers publics).',
+      );
+    }
+
+    const client = this.client;
+    const bucket = this.bucket;
+    const publicBase = this.publicBase.trim();
+    const key = buildObjectKey(userId, normalized, fileName);
+
+    try {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: buffer,
+          ContentType: normalized,
+        }),
+      );
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erreur S3';
+      throw new InternalServerErrorException(`Upload S3 impossible : ${msg}`);
+    }
+
+    return {
+      key,
+      fileUrl: buildPublicFileUrl(publicBase, key),
+      contentType: normalized,
+    };
   }
 }
