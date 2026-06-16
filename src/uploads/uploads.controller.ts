@@ -25,6 +25,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PresignUploadDto } from './dto/presign-upload.dto';
 import { UploadsService } from './uploads.service';
 
+// multer est livré avec @nestjs/platform-express, pas besoin d'ajouter @types/multer.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multer = require('multer') as { memoryStorage: () => object };
+
 type AuthedRequest = Request & { user?: User | { id: string } };
 
 type UploadedMulterFile = {
@@ -58,8 +62,11 @@ export class UploadsController {
   @Post('file')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   @UseInterceptors(
     FileInterceptor('file', {
+      // memoryStorage() est nécessaire pour que file.buffer soit rempli (le stockage disque ne le fait pas).
+      storage: multer.memoryStorage(),
       limits: { fileSize: 15 * 1024 * 1024 },
     }),
   )
