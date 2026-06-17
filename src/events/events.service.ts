@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -77,19 +76,13 @@ export class EventsService {
     return { events: events.map((event) => this.toEventResponse(event)) };
   }
 
-  async updateEvent(eventId: string, organizerId: string, dto: UpdateEventDto) {
+  async updateEvent(eventId: string, dto: UpdateEventDto) {
     const existing = await this.prisma.event.findUnique({
       where: { id: eventId },
     });
 
     if (!existing) {
       throw new NotFoundException('Événement introuvable');
-    }
-
-    if (existing.organizerId !== organizerId) {
-      throw new ForbiddenException(
-        'Vous ne pouvez modifier que vos propres événements',
-      );
     }
 
     const data: Prisma.EventUpdateInput = {};
@@ -142,19 +135,13 @@ export class EventsService {
     return { event: this.toEventResponse(event) };
   }
 
-  async deleteEvent(eventId: string, organizerId: string) {
+  async deleteEvent(eventId: string) {
     const existing = await this.prisma.event.findUnique({
       where: { id: eventId },
     });
 
     if (!existing) {
       throw new NotFoundException('Événement introuvable');
-    }
-
-    if (existing.organizerId !== organizerId) {
-      throw new ForbiddenException(
-        'Vous ne pouvez supprimer que vos propres événements',
-      );
     }
 
     await this.prisma.event.delete({ where: { id: eventId } });

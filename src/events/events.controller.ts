@@ -83,8 +83,8 @@ export class EventsController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateEventDto,
   ) {
-    const userId = this.getUserId(req);
-    return this.eventsService.updateEvent(id, userId, dto);
+    this.getUserId(req);
+    return this.eventsService.updateEvent(id, dto);
   }
 
   @Delete(':id')
@@ -96,8 +96,8 @@ export class EventsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    const userId = this.getUserId(req);
-    return this.eventsService.deleteEvent(id, userId);
+    this.getUserId(req);
+    return this.eventsService.deleteEvent(id);
   }
 
   @Get(':id')
